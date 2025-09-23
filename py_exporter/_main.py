@@ -1,115 +1,8 @@
-import re
-from enum import Enum
 from pathlib import Path
-from typing import Self, overload
+from typing import Self
 
-import utils as _utils
-
-class _OptionsMap(Enum):
-	s_out_dir = '--distpath'
-	s_work_path = '--workpath'
-	b_no_confirm = '--noconfirm'
-	b_clean = '--clean'
-	s_log_level = '--log-level'
-	b_one_dir = '--onedir'
-	b_one_file = '--onefile'
-	s_spec_path = '--specpath'
-	s_name = '--name'
-	s_contents_directory = '--contents-directory'
-	s_icon = '--icon'
-	b_windowed = '--windowed'
-	b_console = '--console'
-	s_hide_console = '--hide-console'
-	b_disable_windowed_traceback = '--disable-windowed-traceback'
-	s_version_file = '--version-file'
-	s_manifest = '--manifest'
-	b_admin = '--uac-admin'
-	b_remote_desktop = '--uac-uiaccess'
-	b_argv_emulation = '--argv-emulation'
-	s_osx_bundle_identifier = '--osx-bundle-identifier'
-	s_target_architecture = '--target-architecture'
-	s_codesign_identity = '--codesign-identity'
-	s_osx_entitlements_file = '--osx-entitlements-file'
-	l_data = '--add-data {}:{}'
-	l_binary = '--add-binary {}:{}'
-	l_paths = '--paths'
-	l_exclude_module = '--exclude_module'
-	l_collect_data = '--collect-data'
-	l_collect_submodules = '--collect-submodules'
-	l_collect_binaries = '--collect-binaries'
-	l_collect_all = '--collect-all'
-	l_copy_metadata = '--copy-metadata'
-	l_recursive_copy_metadata = '--recursive-copy-metadata'
-	l_additional_hooks_dir = '--additional-hooks-dir'
-	l_runtime_hook = '--runtime-hook'
-
-	@staticmethod
-	@overload
-	def get(keys: str) -> tuple[str | None, str | None]: ...
-	@staticmethod
-	@overload
-	def get(*keys: str) -> list[tuple[str, str]]: ...
-	@staticmethod
-	def get(*keys: str):
-		options = _OptionsMap.get_grouped()
-
-		options_grouped = {}
-		[[options_grouped.update({ key: (value, mod) }) for key, value in opt.items()] for mod, opt in options.items()]
-		values = (value for opt, value in options_grouped.items() if opt in keys)
-		if len(keys) == 1:
-			return next(values, (None, None))
-
-		return [*values]
-
-	@staticmethod
-	def get_grouped() -> dict[str, dict[str, str]]:
-		options = { opt.name: opt.value for opt in _OptionsMap }
-		options_grouped = {}
-		for opt, value in options.items():
-			mod, key = re.split(r'(?<=^\w)_', opt)
-
-			d = { key: value }
-			if options_grouped.get(mod) is not None:
-				d.update(options_grouped.get(mod))
-
-			options_grouped.update({ mod: d })
-
-		return options_grouped
-
-
-class TargetArchitecture(Enum):
-	x86_64 = 'x86_64'
-	arm64 = 'arm64'
-	universal = 'universal2'
-
-
-class CollectType(Enum):
-	SUBMODULES = 'submodules'
-	DATA = 'data'
-	BINARIES = 'binaries'
-	ALL = 'all'
-
-class LogLevel(Enum):
-	TRACE = 'TRACE'
-	DEBUG = 'DEBUG'
-	INFO = 'INFO'
-	WARN = 'WARN'
-	DEPRECATION = 'DEPRECATION'
-	ERROR = 'ERROR'
-	FATAL = 'FATAL'
-
-class Debug(Enum):
-	ALL = 'all'
-	IMPORTS = 'imports'
-	BOOTLOADER = 'bootloader'
-	NO_ARCHIVE = 'noarchive'
-
-
-class HideConsole(Enum):
-	HIDE_EARLY = 'hide-early'
-	HIDE_LATE = 'hide-late'
-	MINIMIZE_EARLY = 'minimize-early'
-	MINIMIZE_LATE = 'minimize-late'
+from ._utils import *
+from ._enums import *
 	
 class WindowsOptions:
 	def __init__(
@@ -138,7 +31,7 @@ class WindowsOptions:
 		return d
 	def add_resource(self, *resources: tuple[str | Path, str, str, str | int]):
 		"""https://pyinstaller.org/en/stable/usage.html#cmdoption-r"""
-		return _utils.add_list(self, '_resources', resources, lambda v: (Path(v[0]), v[1:]))
+		return add_list(self, '_resources', resources, lambda v: (Path(v[0]), v[1:]))
 class MacOsOptions:
 	def __init__(self,
 		argv_emulation: bool = False,
@@ -172,7 +65,7 @@ class PyExporter:
 	             out_dir: str | Path = Path('./dist'),
 	             one_dir: bool = False,
 	             one_file: bool = True,
-	             spec_path: str | Path = Path('./'),
+	             spec_path: str | Path = Path('./dist'),
 	             work_path: str | Path = Path('./build'),
 	             no_confirm: bool = True,
 	             clean: bool = False,
@@ -185,7 +78,7 @@ class PyExporter:
 	             debug: Debug | None = None,
 	             disable_windowed_traceback: bool | None = None,
 	             platform_options: MacOsOptions | WindowsOptions | None = None
-	    ):
+	             ):
 		"""
 		:param file: https://pyinstaller.org/en/stable/usage.html#cmdoption-arg-scriptname
 		:param name: https://pyinstaller.org/en/stable/usage.html#cmdoption-n
@@ -215,13 +108,13 @@ class PyExporter:
 			'work_path': Path(work_path),
 			'no_confirm': no_confirm,
 			'clean': clean,
-			'log_level': _utils.get_enum_str(log_level),
+			'log_level': get_enum_str(log_level),
 			'contents_directory': contents_directory,
 			'windowed': windowed,
 			'console': console,
 			'icon': icon,
 			'hide_console': hide_console,
-			'debug': _utils.get_enum_str(debug),
+			'debug': get_enum_str(debug),
 			'disable_windowed_traceback': disable_windowed_traceback,
 		}
 		if platform_options:
@@ -239,16 +132,16 @@ class PyExporter:
 
 	def add_data(self, source: str | Path, destination: str | Path) -> Self:
 		"""https://pyinstaller.org/en/stable/usage.html#cmdoption-add-data"""
-		return _utils.add(self,'_data', [(Path(source), Path(destination))])
+		return add(self,'_data', [(Path(source), Path(destination))])
 	def add_binary(self, source: str | Path, destination: str | Path) -> Self:
 		"""https://pyinstaller.org/en/stable/usage.html#cmdoption-add-binary"""
-		return _utils.add(self, '_binary', [(Path(source), Path(destination))])
+		return add(self, '_binary', [(Path(source), Path(destination))])
 	def add_path(self, *directories: str | Path) -> Self:
 		"""https://pyinstaller.org/en/stable/usage.html#cmdoption-p"""
-		return _utils.add_list(self,'_paths', directories, lambda path: Path(path))
+		return add_list(self,'_paths', directories, lambda path: Path(path))
 	def add_hidden_import(self, *module_names: str):
 		"""https://pyinstaller.org/en/stable/usage.html#cmdoption-hidden-import"""
-		return _utils.add_list(self,'_hidden_imports', module_names)
+		return add_list(self,'_hidden_imports', module_names)
 	def add_collect(self, collect_type: CollectType | str, *module_names: str):
 		"""
 		Depends on `collect_type` variable:
@@ -261,10 +154,10 @@ class PyExporter:
 
 		ALL: https://pyinstaller.org/en/stable/usage.html#cmdoption-collect-all
 		"""
-		if not (_utils.get_enum_str(collect_type) in _utils.get_enum_data(CollectType).values()):
+		if not (get_enum_str(collect_type) in get_enum_data(CollectType).values()):
 			raise ValueError(f'Invalid "collect_type"')
 		for module_name in module_names:
-			_utils.add(self,'_collects', [(collect_type, module_name)])
+			add(self,'_collects', [(collect_type, module_name)])
 		return self
 	def add_copy_metadata(self, *package_names: str | tuple[str, bool]):
 		"""
@@ -278,21 +171,21 @@ class PyExporter:
 			extended = type(package) == str
 			name = package if extended else package[0]
 			recursive = False if extended else package[1]
-			_utils.add(self,'copy_metadata', [name, recursive])
+			add(self,'_copy_metadata', [(name, recursive)])
 		return self
 	def add_additional_hooks_directory(self, *hook_paths: str | Path):
 		"""https://pyinstaller.org/en/stable/usage.html#cmdoption-additional-hooks-dir"""
-		return _utils.add_list(self,'_additional_hooks_directory', hook_paths, lambda v: Path(v))
+		return add_list(self,'_additional_hooks_directory', hook_paths, lambda v: Path(v))
 	def add_runtime_hook(self, *runtime_hooks: str):
 		"""https://pyinstaller.org/en/stable/usage.html#cmdoption-runtime-hook"""
-		return _utils.add_list(self,'_runtime_hooks', runtime_hooks)
+		return add_list(self,'_runtime_hooks', runtime_hooks)
 	def add_exclude_module(self, *excludes: str):
 		"""https://pyinstaller.org/en/stable/usage.html#cmdoption-exclude-module"""
-		return _utils.add_list(self,'_exclude_module', excludes)
+		return add_list(self,'_exclude_module', excludes)
 
 	def get_options(self):
 		d = self._options
-		items = _utils.get_dict(self.__dict__, lambda key, v, is_function: not is_function)
+		items = get_dict(self.__dict__, lambda key, v, is_function: not is_function)
 		for key, value in items.items():
 			if type(value) != list:
 				continue
@@ -318,7 +211,7 @@ class PyExporter:
 			options.get('file'),
 		]
 		for opt, value in options.items():
-			key, mod = _OptionsMap.get(re.sub(r'^_+', '', str(opt)))
+			key, mod = OptionsMap.get(re.sub(r'^_+', '', str(opt)))
 			if value is None and key is None:
 				continue
 
@@ -350,8 +243,10 @@ class PyExporter:
 				*[(value[0], " ".join(value[1:]) or None) for value in values]
 			]
 		return [str(opt) for opt in pyinstaller_options]
-	def run(self):
+	def run(self, print_options: bool = False):
 		from PyInstaller.__main__ import run
 		run(self.get_pyinstaller_options(False))
+		if print_options:
+			print(self.get_pyinstaller_options(True))
 
-print(PyExporter('./main.py', name='jw-mwb', one_file=True, clean=True, no_confirm=True, log_level=LogLevel.WARN).get_pyinstaller_options())
+PyExporter('./_main.py').add_copy_metadata('readchar')

@@ -5,7 +5,7 @@ A package to help building your python apps with [PyInstaller](https://pyinstall
 # Usage
 
 ```python
-from pyexporter import PyExporter
+from py_exporter import PyExporter
 
 PyExporter('script.py').run()
 ```
