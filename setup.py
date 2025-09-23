@@ -7,7 +7,7 @@ with open('LICENSE') as f:
 
 setup(
 	name='py_package_exporter',
-	version='0.0.3',
+	version='0.0.4',
 	description='A package to help building your python apps with PyInstaller',
 	long_description=long_description,
 	long_description_content_type='text/markdown',
