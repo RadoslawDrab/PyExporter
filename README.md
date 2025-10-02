@@ -2,6 +2,12 @@
 
 A package to help building your python apps with [PyInstaller](https://pyinstaller.org/en/stable/index.html)
 
+# Installation
+
+```bash
+pip install py-package-exporter
+```
+
 # Usage
 
 ```python
